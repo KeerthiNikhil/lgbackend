@@ -1,118 +1,76 @@
-import User from "./models/User.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { Request, Response } from "express";
+import User from "../models/user.model";
+import { generateToken } from "../utils/generateToken";
 
-// ================= REGISTER =================
-export const registerUser = async (req, res) => {
+
+// REGISTER
+export const register = async (req: Request, res: Response) => {
   try {
-    const { name, phone, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.json({ success: false, message: "User already exists" });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await User.create({
+    const user = await User.create({
       name,
-      phone,
       email,
-      password: hashedPassword,
+      password,
+      role,
     });
 
-    res.json({ success: true, message: "Registration successful" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+    const token = generateToken(user._id.toString());
 
-// ================= LOGIN =================
-export const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.json({ success: false, message: "User not found" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.json({ success: false, message: "Invalid password" });
-    }
-
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
-      success: true,
+    res.status(201).json({
       token,
       user: {
         id: user._id,
-        role: user.role,
+        name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// ================= FORGOT PASSWORD =================
-export const forgotPassword = async (req, res) => {
-  try {
-    const { emailOrPhone } = req.body;
 
-    const user = await User.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
-    });
+
+// LOGIN
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const isMatch = await user.comparePassword(password);
 
-    user.otp = otp;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
-    await user.save();
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    console.log("OTP:", otp); // 🔥 for testing
+    const token = generateToken(user._id.toString());
 
-    res.json({ success: true, message: "OTP sent" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ================= RESET PASSWORD =================
-export const resetPassword = async (req, res) => {
-  try {
-    const { emailOrPhone, otp, newPassword } = req.body;
-
-    const user = await User.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
 
-    if (!user) {
-      return res.json({ success: false, message: "User not found" });
-    }
-
-    if (user.otp !== otp || user.otpExpiry < Date.now()) {
-      return res.json({ success: false, message: "Invalid or expired OTP" });
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.otp = null;
-    user.otpExpiry = null;
-    await user.save();
-
-    res.json({ success: true, message: "Password updated" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
