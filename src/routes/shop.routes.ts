@@ -13,15 +13,15 @@ import { getNearbyShops } from "../controllers/shop.controller";
 const router = express.Router();
 
 // Vendor creates shop
-router.post("/", protect, restrictTo("vendor"), createShop);
+router.post("/", createShop);
 
 // Admin approves shop
 router.put("/:id/approve", protect, restrictTo("admin"), approveShop);
 
 // Public routes
 router.get("/", getApprovedShops);
-router.get("/:shopId", getShopById);
 router.get("/nearby/search", getNearbyShops);
+router.get("/:shopId", getShopById);
 
 
 export default router;

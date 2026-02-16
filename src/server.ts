@@ -7,6 +7,8 @@ import { protect } from "./middleware/protect.middleware";
 import { restrictTo } from "./middleware/restrict.middleware";
 import vendorRoutes from "./routes/vendor.routes";
 import shopRoutes from "./routes/shop.routes";
+import productRoutes from "./routes/product.routes";
+
 
 dotenv.config();
 
@@ -18,9 +20,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.use("/api/auth", authRoutes); 
-app.use("/api/vendor", vendorRoutes);  
-app.use("/api/shops", shopRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/vendor", vendorRoutes);
+app.use("/api/v1/shops", shopRoutes);
+app.use("/api/v1/products", productRoutes);
+
+app.use("/uploads", express.static("uploads"));
+
+
 app.get(
   "/api/admin-only",
   protect,
