@@ -3,7 +3,7 @@ import User from "../models/user.model";
 import { generateOTP } from "../units/otp";
 import jwt from "jsonwebtoken";
 
-// ================= REGISTER =================
+
 
 export const register = async (req: Request, res: Response) => {
   try {
