@@ -1,118 +1,105 @@
-import User from "./models/User.js";
-import bcrypt from "bcryptjs";
+import { Request, Response } from "express";
+import User from "../models/user.model";
+import { generateOTP } from "../units/otp";
 import jwt from "jsonwebtoken";
 
 // ================= REGISTER =================
-export const registerUser = async (req, res) => {
-  try {
-    const { name, phone, email, password } = req.body;
 
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.json({ success: false, message: "User already exists" });
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { name, phone } = req.body;
+
+    const existingUser = await User.findOne({ phone });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "User already registered. Please login.",
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = generateOTP();
 
-    await User.create({
+    const newUser = new User({
       name,
       phone,
-      email,
-      password: hashedPassword,
+      otp,
+      otpExpiry: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    res.json({ success: true, message: "Registration successful" });
+    await newUser.save();
+
+    console.log("Registration OTP:", otp); // For testing
+
+    res.json({
+      message: "Registration successful",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ message: "Registration failed" });
   }
 };
 
-// ================= LOGIN =================
-export const loginUser = async (req, res) => {
+// ================= VERIFY REGISTER OTP =================
+
+export const verifyRegisterOTP = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { phone, otp } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ phone });
+
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(400).json({ message: "User not found" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.json({ success: false, message: "Invalid password" });
+    if (user.otp !== otp || user.otpExpiry! < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    await user.save();
 
     const token = jwt.sign(
       { id: user._id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
 
     res.json({
-      success: true,
+      message: "Registration completed",
       token,
-      user: {
-        id: user._id,
-        role: user.role,
-        email: user.email,
-      },
+      user,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ message: "Verification failed" });
   }
 };
-
-// ================= FORGOT PASSWORD =================
-export const forgotPassword = async (req, res) => {
+export const checkUser = async (req: Request, res: Response) => {
   try {
-    const { emailOrPhone } = req.body;
+    const { phone } = req.body;
+        console.log("checkUser API called");  
 
-    const user = await User.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
-    });
+
+    const user = await User.findOne({ phone });
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ message: "User not registered" });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 🔥 generate OTP for login
+    const otp = generateOTP();
 
     user.otp = otp;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    console.log("OTP:", otp); // 🔥 for testing
+    console.log("Login OTP:", otp); // show in terminal
 
-    res.json({ success: true, message: "OTP sent" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ================= RESET PASSWORD =================
-export const resetPassword = async (req, res) => {
-  try {
-    const { emailOrPhone, otp, newPassword } = req.body;
-
-    const user = await User.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+    res.json({
+      message: "OTP sent to your phone",
     });
 
-    if (!user) {
-      return res.json({ success: false, message: "User not found" });
-    }
-
-    if (user.otp !== otp || user.otpExpiry < Date.now()) {
-      return res.json({ success: false, message: "Invalid or expired OTP" });
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.otp = null;
-    user.otpExpiry = null;
-    await user.save();
-
-    res.json({ success: true, message: "Password updated" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.log(error);
+    res.status(500).json({ message: "Server error" });
   }
 };

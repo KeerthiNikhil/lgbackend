@@ -1,18 +1,10 @@
 import express from "express";
-import {
-  registerUser,
-  loginUser,
-  forgotPassword,
-  resetPassword,
-} from "../authController.js";
+import { register, verifyRegisterOTP, checkUser } from "../controllers/auth.controller";
 
 const router = express.Router();
 
-router.post("/register", registerUser);
-router.post("/login", (req, res) => {
-  res.json({ message: "Login route working" });
-});
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+router.post("/register", register);
+router.post("/verify-register", verifyRegisterOTP);
+router.post("/check-user", checkUser);   // 🔥 THIS LINE MUST EXIST
 
 export default router;
