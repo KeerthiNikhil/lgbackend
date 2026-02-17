@@ -3,9 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IUser extends Document {
   name: string;
   phone: string;
-  email?: string;
-  role: "customer" | "vendor" | "admin";
-  isVerified: boolean;
+  role: "user" | "vendor" | "admin";
   otp?: string;
   otpExpiry?: Date;
 }
@@ -15,31 +13,35 @@ const userSchema = new Schema<IUser>(
     name: {
       type: String,
       required: true,
+      trim: true,
     },
 
     phone: {
       type: String,
       required: true,
       unique: true,
-    },
-
-    email: {
-      type: String,
-      required: true,
-      unique: true,
+      trim: true,
     },
 
     role: {
       type: String,
-      enum: ["customer", "vendor", "admin"],
-      default: "customer",
+      enum: ["user", "vendor", "admin"],
+      default: "user",
     },
 
-    otp: String,
+    otp: {
+      type: String,
+    },
 
-    otpExpiry: Date,
+    otpExpiry: {
+      type: Date,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true, // adds createdAt & updatedAt
+  }
 );
 
-export default mongoose.model<IUser>("User", userSchema);
+const User = mongoose.model<IUser>("User", userSchema);
+
+export default User;

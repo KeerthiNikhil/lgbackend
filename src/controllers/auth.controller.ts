@@ -1,112 +1,58 @@
 import User from "../models/user.model";
+import generateToken from "../utils/generateToken";
 
-export const registerUser = async (req, res) => {
+let otpStore: { [key: string]: string } = {};
+
+// REGISTER
+export const register = async (req, res) => {
   try {
-    const { name, phone, email, role } = req.body;
+    const { name, phone } = req.body;
 
     const existingUser = await User.findOne({ phone });
-
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone number already registered",
-      });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     const user = await User.create({
       name,
       phone,
-      email,
-      role,
+      role: "user",
     });
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      data: user,
-    });
+    res.status(201).json({ success: true, user });
 
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(400).json({ message: error.message });
   }
 };
 
+// SEND OTP
 export const sendOtp = async (req, res) => {
-  try {
-    const { phone } = req.body;
+  const { phone } = req.body;
 
-    const user = await User.findOne({ phone });
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[phone] = otp;
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+  console.log(`🔥 OTP for ${phone}: ${otp}`);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    user.otp = otp;
-    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-    await user.save();
-
-    console.log("OTP:", otp); // For development only
-
-    res.json({
-      success: true,
-      message: "OTP sent successfully",
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.json({ success: true });
 };
 
-import jwt from "jsonwebtoken";
-
+// VERIFY OTP
 export const verifyOtp = async (req, res) => {
-  try {
-    const { phone, otp } = req.body;
+  const { phone, otp } = req.body;
 
-    const user = await User.findOne({ phone });
-
-    if (!user || user.otp !== otp || user.otpExpiry < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired OTP",
-      });
-    }
-
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    await user.save();
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
-      success: true,
-      message: "Login successful",
-      token,
-      user,
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  if (otpStore[phone] !== otp) {
+    return res.status(400).json({ message: "Invalid OTP" });
   }
+
+  const user = await User.findOne({ phone });
+
+  const token = generateToken(user._id);
+
+  res.json({
+    success: true,
+    token,
+    user,
+  });
 };
-
-

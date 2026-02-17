@@ -7,9 +7,17 @@ const router = express.Router();
 // ================= REGISTER =================
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, email, role } = req.body;
+    const { name, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and phone are required",
+      });
+    }
 
     const existing = await User.findOne({ phone });
+
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -20,15 +28,15 @@ router.post("/register", async (req, res) => {
     const user = await User.create({
       name,
       phone,
-      email,
-      role,
+      role: "user",
     });
 
     res.json({
       success: true,
-      message: "User registered",
+      message: "User registered successfully",
       data: user,
     });
+
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -43,6 +51,7 @@ router.post("/send-otp", async (req, res) => {
     const { phone } = req.body;
 
     const user = await User.findOne({ phone });
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -54,6 +63,7 @@ router.post("/send-otp", async (req, res) => {
 
     user.otp = otp;
     user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
     await user.save();
 
     console.log("🔥 OTP for", phone, ":", otp);
@@ -62,6 +72,7 @@ router.post("/send-otp", async (req, res) => {
       success: true,
       message: "OTP sent (check backend console)",
     });
+
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -106,6 +117,7 @@ router.post("/verify-otp", async (req, res) => {
       token,
       user,
     });
+
   } catch (error: any) {
     res.status(500).json({
       success: false,
