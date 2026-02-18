@@ -1,19 +1,19 @@
 import express from "express";
 import cors from "cors";
-import authRoutes from "./routes/auth.routes";
+import path from "path";
+import productRoutes from "./routes/product.routes";
 
 const app = express();
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-console.log("Auth routes loading...");
+// Static folder for images
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// routes
-app.use("/api/auth", authRoutes);
-
-app.get("/", (req, res) => {
-  res.send("Server Working ✅");
-});
+// Routes
+app.use("/api/products", productRoutes);
 
 export default app;
