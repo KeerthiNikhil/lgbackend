@@ -1,26 +1,34 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-const productSchema = new mongoose.Schema(
+export interface IProduct extends Document {
+  name: string;
+  description: string;
+  specification: string;
+  category: string;
+  subCategory: string;
+  price: number;
+  discountPrice: number;
+  discountPercent: number;
+  inStock: boolean;
+  sizes: string[];
+  images: string[];
+}
+
+const productSchema = new Schema<IProduct>(
   {
-    name: String,
+    name: { type: String, required: true },
     description: String,
     specification: String,
-
     category: String,
     subCategory: String,
-
     price: Number,
     discountPrice: Number,
     discountPercent: Number,
-
     inStock: Boolean,
     sizes: [String],
-
-    date: Date,
-
-    images: [String], // image URLs / filenames
+    images: [String],
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Product", productSchema);
+export default mongoose.model<IProduct>("Product", productSchema);
