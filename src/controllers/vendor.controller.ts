@@ -1,46 +1,24 @@
-import { Request, Response } from "express";
-import User from "../models/user.model";
+import Shop from "../models/shop.model.js";
 
-// Customer requests vendor access
-export const requestVendorAccess = async (req: any, res: Response) => {
+export const createShop = async (req: any, res: any) => {
   try {
-    const user = await User.findById(req.user._id);
+    const { name, description } = req.body;
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const shop = await Shop.create({
+      name,
+      description,
+      owner: req.user.id,
+    });
 
-    if (user.role === "vendor") {
-      return res.status(400).json({ message: "Already a vendor" });
-    }
+    res.status(201).json({
+      success: true,
+      data: shop,
+    });
 
-    user.isVendorRequested = true;
-    await user.save();
-
-    res.json({ message: "Vendor request submitted" });
-
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-export const approveVendor = async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.params;
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.role = "vendor";
-    user.isVendorRequested = false;
-
-    await user.save();
-
-    res.json({ message: "User promoted to vendor" });
-
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

@@ -2,13 +2,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import authRoutes from "./routes/auth.routes";
-import { protect } from "./middleware/protect.middleware";
-import { restrictTo } from "./middleware/restrict.middleware";
-import vendorRoutes from "./routes/vendor.routes";
-import shopRoutes from "./routes/shop.routes";
-import productRoutes from "./routes/product.routes";
-
+import authRoutes from "./routes/auth.routes.js";
+import { restrictTo } from "./middleware/restrict.middleware.js";
+import vendorRoutes from "./routes/vendor.routes.js";
+import shopRoutes from "./routes/shop.routes.js";
+import productRoutes from "./routes/product.routes.js";
+import { protect } from "./middleware/auth.middleware.js";
 
 dotenv.config();
 

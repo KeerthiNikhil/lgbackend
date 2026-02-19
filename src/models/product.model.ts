@@ -2,23 +2,46 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+    },
+
+    image: {
+      type: String, // Cloudinary later
+    },
+
+    stock: {
+      type: Number,
+      default: 0,
+    },
+
     shop: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shop",
       required: true,
     },
 
-    name: String,
-    description: String,
-    specification: String,
-    category: String,
-    subCategory: String,
-    price: Number,
-    discountPrice: Number,
-    discountPercent: Number,
-    inStock: Boolean,
-    sizes: [String],
-    images: [String],
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

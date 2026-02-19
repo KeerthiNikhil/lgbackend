@@ -1,10 +1,19 @@
 import express from "express";
 import multer from "multer";
-import Product from "../models/product.model";
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  searchProducts,
+  getMyProducts,
+  getProductsByShop,
+  getAllProducts,
+} from "../controllers/product.controller.js";
+import { protect, restrictTo } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// ================= MULTER CONFIG =================
+// Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -16,138 +25,29 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// ================= ADD PRODUCT =================
-router.post("/", upload.array("images", 4), async (req, res) => {
-  try {
-    const imageUrls = (req.files || []).map(
-      (file) =>
-        `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
-    );
+/* ================= PUBLIC ROUTES ================= */
 
-    const newProduct = await Product.create({
-      name: req.body.name,
-      description: req.body.description,
-      specification: req.body.specification,
-      category: req.body.category,
-      subCategory: req.body.subCategory,
-      price: Number(req.body.price),
-      discountPrice: Number(req.body.discountPrice) || 0,
-      discountPercent: Number(req.body.discountPercent) || 0,
-      inStock: req.body.inStock === "true",
-      sizes: req.body.sizes ? req.body.sizes.split(",") : [],
-      images: imageUrls,
-      shop: req.body.shop,
-      date: new Date(),
-    });
+// Get all products
+router.get("/", getAllProducts);
 
-    res.status(201).json({
-      success: true,
-      message: "Product created successfully",
-      data: newProduct,
-    });
+// Get products by shop
+router.get("/shop/:shopId", getProductsByShop);
+router.get("/search", searchProducts);
 
-  } catch (error) {
-    console.error("UPLOAD ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
+/* ================= VENDOR ROUTES ================= */
 
-// ================= UPDATE PRODUCT =================
-router.put("/:id", upload.array("images", 4), async (req, res) => {
-  try {
-    const imageUrls = (req.files || []).map(
-      (file) =>
-        `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
-    );
+router.use(protect, restrictTo("vendor"));
 
-    const updateData = {
-      name: req.body.name,
-      description: req.body.description,
-      specification: req.body.specification,
-      category: req.body.category,
-      subCategory: req.body.subCategory,
-      price: Number(req.body.price),
-      discountPrice: Number(req.body.discountPrice) || 0,
-      discountPercent: Number(req.body.discountPercent) || 0,
-      inStock: req.body.inStock === "true",
-      sizes: req.body.sizes ? req.body.sizes.split(",") : [],
-    };
+// Create
+router.post("/", upload.array("images", 4), createProduct);
 
-    if (imageUrls.length > 0) {
-      updateData.images = imageUrls;
-    }
+// My products
+router.get("/my-products", getMyProducts);
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
+// Update
+router.put("/:id", upload.array("images", 4), updateProduct);
 
-    res.json({
-      success: true,
-      message: "Product updated successfully",
-      data: updatedProduct,
-    });
-
-  } catch (error) {
-    console.error("UPDATE ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
-
-// ================= GET ALL PRODUCTS =================
-router.get("/", async (req, res) => {
-  try {
-    const products = await Product.find().sort({ createdAt: -1 });
-
-    const formatted = products.map((p) => ({
-      id: p._id,
-      name: p.name,
-      price: p.discountPrice || p.price,
-      originalPrice: p.discountPrice ? p.price : undefined,
-      image: p.images?.[0] || "",
-      rating: 4,
-      reviews: 120,
-    }));
-
-    res.status(200).json({
-      success: true,
-      data: formatted,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-       });
-  }
-});
-
-// ================= GET PRODUCTS BY SHOP =================
-router.get("/shop/:shopId", async (req, res) => {
-  try {
-    const products = await Product.find({
-      shop: req.params.shopId,
-    }).sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      data: products,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
-
-
+// Delete
+router.delete("/:id", deleteProduct);
 
 export default router;
