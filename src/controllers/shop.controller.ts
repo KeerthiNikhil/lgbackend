@@ -3,25 +3,84 @@ import User from "../models/user.model";
 
 export const createShop = async (req: any, res: any) => {
   try {
-    const vendorId = req.user.id; // from auth middleware
+
+    const userId = req.user._id;
+
+    const {
+      shopName,
+      ownerName,
+      businessType,
+      description,
+      email,
+      phone,
+      address,
+      latitude,
+      longitude,
+      gstNumber,
+      udyamNumber,
+      fssaiNumber,
+      tradeLicenseNumber
+    } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Location required",
+      });
+    }
+
+    const shopImage = req.file
+      ? `/uploads/${req.file.filename}`
+      : null;
 
     const shop = await Shop.create({
-      ...req.body,
-      vendorId,
+      owner: userId,
+      shopName,
+      ownerName,
+      businessType,
+      description,
+      email,
+      phone,
+      address,
+      gstNumber,
+      udyamNumber,
+      fssaiNumber,
+      tradeLicenseNumber,
+      shopImage,
+      location: {
+        type: "Point",
+        coordinates: [
+          parseFloat(longitude),
+          parseFloat(latitude),
+        ],
+      },
+    });
+
+    await User.findByIdAndUpdate(userId, {
+      role: "vendor",
     });
 
     res.status(201).json({
-      message: "Shop created successfully",
-      shop,
+      success: true,
+      data: shop,
     });
-  } catch (error) {
-    res.status(500).json({ message: "Error creating shop", error });
+
+  } catch (error: any) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
+/* ================= GET ALL VENDOR SHOPS ================= */
+
 export const getMyShops = async (req: any, res: any) => {
   try {
-    const shops = await Shop.find({ owner: req.user.id });
+
+    const shops = await Shop.find({ owner: req.user._id });
 
     res.json({
       success: true,
@@ -35,45 +94,24 @@ export const getMyShops = async (req: any, res: any) => {
     });
   }
 };
-export const seedDummyShops = async (req: any, res: any) => {
+export const getVendorShops = async (req: any, res: any) => {
   try {
-    const dummyShops = [
-      {
-        name: "Fresh Mart",
-        description: "Daily grocery & vegetables",
-        address: "Balmatta, Mangalore",
-        location: {
-          type: "Point",
-          coordinates: [74.8560, 12.9141],
-        },
-        owner: req.user._id,
-        isApproved: true,
-      },
-      {
-        name: "Tech World",
-        description: "Electronics & gadgets",
-        address: "Hampankatta, Mangalore",
-        location: {
-          type: "Point",
-          coordinates: [74.8420, 12.8700],
-        },
-        owner: req.user._id,
-        isApproved: true,
-      },
-    ];
 
-    const created = await Shop.insertMany(dummyShops);
+    const shops = await Shop.find({
+      owner: req.user._id
+    }).select("_id shopName");
 
     res.json({
       success: true,
-      message: "Dummy shops added",
-      data: created,
+      data: shops
     });
 
   } catch (error: any) {
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message
     });
+
   }
 };

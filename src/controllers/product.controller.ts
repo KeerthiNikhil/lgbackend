@@ -1,191 +1,179 @@
-import Product from "../models/product.model.js";
-import Shop from "../models/shop.model.js";
+import Product from "../models/product.model";
+import Shop from "../models/shop.model";
 
-// ================= CREATE PRODUCT =================
+/* ================= CREATE PRODUCT ================= */
+
 export const createProduct = async (req: any, res: any) => {
+
   try {
-    const { name, description, price, stock, shopId } = req.body;
 
-    // Check shop belongs to vendor
-    const shop = await Shop.findOne({
-      _id: shopId,
-      owner: req.user.id,
-    });
+    const userId = req.user._id;
 
-    if (!shop) {
-      return res.status(403).json({
-        success: false,
-        message: "You cannot add product to this shop",
-      });
-    }
-
-    const product = await Product.create({
+    const {
       name,
       description,
       price,
       stock,
-      shop: shopId,
-      owner: req.user.id,
+      category,
+      discountType,
+      discountValue,
+      shop,
+
+      expiryDate,
+      weight,
+      size,
+      brand,
+      warranty,
+      modelNumber,
+      manufacturer,
+      skinType,
+      author,
+      ageGroup,
+      material
+    } = req.body;
+
+    /* VERIFY SHOP BELONGS TO VENDOR */
+
+    const shopData = await Shop.findOne({
+      _id: shop,
+      owner: userId
+    });
+
+    if (!shopData) {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid shop selection"
+      });
+    }
+
+    /* HANDLE MULTIPLE IMAGES */
+
+    const images: string[] = [];
+
+    if (req.files && Array.isArray(req.files)) {
+
+      req.files.forEach((file: any) => {
+        images.push(`/uploads/${file.filename}`);
+      });
+
+    }
+
+    /* CREATE PRODUCT */
+
+    const product = await Product.create({
+
+      name,
+      description,
+
+      price: Number(price),
+      stock: Number(stock),
+
+      category,
+
+      discountType,
+      discountValue: Number(discountValue || 0),
+
+      shop,
+
+      images,
+
+      expiryDate,
+      weight,
+      size,
+      brand,
+      warranty,
+      modelNumber,
+      manufacturer,
+      skinType,
+      author,
+      ageGroup,
+      material
+
     });
 
     res.status(201).json({
       success: true,
-      data: product,
+      data: product
     });
 
   } catch (error: any) {
+
+    console.log("CREATE PRODUCT ERROR:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message
     });
+
   }
+
 };
 
-// ================= GET MY PRODUCTS =================
-export const getMyProducts = async (req: any, res: any) => {
-  try {
-    const products = await Product.find({
-      owner: req.user.id,
-    }).populate("shop", "name");
+/* ================= DELETE PRODUCT ================= */
 
-    res.json({
-      success: true,
-      data: products,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ================= UPDATE PRODUCT =================
-export const updateProduct = async (req: any, res: any) => {
-  try {
-    const product = await Product.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        owner: req.user.id,
-      },
-      req.body,
-      { new: true }
-    );
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: product,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ================= DELETE PRODUCT =================
 export const deleteProduct = async (req: any, res: any) => {
+
   try {
-    const product = await Product.findOneAndDelete({
-      _id: req.params.id,
-      owner: req.user.id,
-    });
+
+    const { productId } = req.params;
+
+    const product = await Product.findById(productId);
 
     if (!product) {
+
       return res.status(404).json({
         success: false,
-        message: "Product not found",
+        message: "Product not found"
       });
+
     }
+
+    await Product.findByIdAndDelete(productId);
 
     res.json({
       success: true,
-      message: "Product deleted successfully",
+      message: "Product deleted successfully"
     });
 
   } catch (error: any) {
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message
     });
+
   }
-};
-export const getAllProducts = async (req: any, res: any) => {
-  try {
-    const { search } = req.query;
 
-    let query: any = {};
-
-    if (search) {
-      query = {
-        $or: [
-          { name: { $regex: search, $options: "i" } },
-          { description: { $regex: search, $options: "i" } },
-        ],
-      };
-    }
-
-    const products = await Product.find(query).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      data: products,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
 };
 
+/* ================= GET PRODUCTS BY SHOP ================= */
 
 export const getProductsByShop = async (req: any, res: any) => {
+
   try {
+
+    const { shopId } = req.params;
+
     const products = await Product.find({
-      shop: req.params.shopId,
+      shop: shopId,
+      isActive: true
     }).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      data: products,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-export const searchProducts = async (req: any, res: any) => {
-  try {
-    const keyword = req.query.keyword;
-
-    const products = await Product.find({
-      name: { $regex: keyword, $options: "i" },
-    });
 
     res.json({
       success: true,
-      data: products,
+      count: products.length,
+      data: products
     });
 
   } catch (error: any) {
+
+    console.log("GET PRODUCTS ERROR:", error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message
     });
+
   }
+
 };

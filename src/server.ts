@@ -8,23 +8,34 @@ import vendorRoutes from "./routes/vendor.routes.js";
 import shopRoutes from "./routes/shop.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import { protect } from "./middleware/auth.middleware.js";
+import adminRoutes from "./routes/admin.routes.js";
+import searchRoutes from "./routes/search.routes";
+
 
 dotenv.config();
 
 const app = express();   
 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // user-web
+      "http://localhost:5174", // vendor-web
+      "http://localhost:3000", // admin-web
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/vendor", vendorRoutes);
 app.use("/api/v1/shops", shopRoutes);
 app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 app.use("/uploads", express.static("uploads"));
+app.use("/api/v1/search", searchRoutes);
 
 
 app.get(

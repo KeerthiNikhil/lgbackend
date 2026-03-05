@@ -1,74 +1,100 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IShop extends Document {
-  vendorId: mongoose.Types.ObjectId;
-
+  owner: mongoose.Types.ObjectId;
+  shopName: string;
   ownerName: string;
   businessType: string;
-  shopName: string;
-  logo?: string;
-  description: string;
-  yearsOfOperation?: number;
-
+  email: string;
+  phone: string;
   address: string;
-  area: string;
-  latitude?: number;
-  longitude?: number;
+  description?: string;
 
   gstNumber?: string;
-  shopLicense?: string;
   udyamNumber?: string;
   fssaiNumber?: string;
-  tradeLicense?: string;
+  tradeLicenseNumber?: string;
 
-  documentUploads?: {
-    shopLicenseFile?: string;
-    fssaiFile?: string;
-    gstCertificateFile?: string;
+  shopImage?: string;
+
+  location: {
+    type: "Point";
+    coordinates: [number, number];
   };
 
-  verificationStatus: "pending" | "approved" | "rejected";
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const shopSchema = new Schema<IShop>(
   {
-    vendorId: {
-      type: Schema.Types.ObjectId,
-      ref: "Vendor",
-      required: true
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
 
-    ownerName: { type: String, required: true },
-    businessType: { type: String, required: true },
-    shopName: { type: String, required: true },
-    logo: { type: String },
-    description: { type: String, required: true },
-    yearsOfOperation: { type: Number },
-
-    address: { type: String, required: true },
-    area: { type: String, required: true },
-    latitude: { type: Number },
-    longitude: { type: Number },
-
-    gstNumber: { type: String },
-    shopLicense: { type: String },
-    udyamNumber: { type: String },
-    fssaiNumber: { type: String },
-    tradeLicense: { type: String },
-
-    documentUploads: {
-      shopLicenseFile: { type: String },
-      fssaiFile: { type: String },
-      gstCertificateFile: { type: String }
-    },
-
-    verificationStatus: {
+    shopName: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending"
-    }
+      required: true,
+      trim: true,
+    },
+
+    ownerName: {
+      type: String,
+      required: true,
+    },
+
+    businessType: {
+      type: String,
+      required: true,
+    },
+
+    description: String,
+
+    email: {
+      type: String,
+      required: true,
+    },
+
+    phone: {
+      type: String,
+      required: true,
+    },
+
+    address: {
+      type: String,
+      required: true,
+    },
+
+    gstNumber: String,
+    udyamNumber: String,
+    fssaiNumber: String,
+    tradeLicenseNumber: String,
+
+    shopImage: String,
+
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
+
+shopSchema.index({ location: "2dsphere" });
 
 export default mongoose.model<IShop>("Shop", shopSchema);

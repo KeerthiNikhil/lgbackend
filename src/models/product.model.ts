@@ -1,42 +1,89 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const productSchema = new mongoose.Schema(
+export interface IProduct extends Document {
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category?: string;
+
+  discountType?: "percentage" | "flat";
+  discountValue?: number;
+  finalPrice?: number;
+
+  shop: mongoose.Types.ObjectId;
+
+  images: string[];
+
+  expiryDate?: Date;
+  weight?: string;
+  size?: string;
+  brand?: string;
+  warranty?: string;
+  modelNumber?: string;
+  manufacturer?: string;
+  skinType?: string;
+  author?: string;
+  ageGroup?: string;
+  material?: string;
+
+  isActive: boolean;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const productSchema = new Schema<IProduct>(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
     },
 
-    description: {
-      type: String,
-      required: true,
-    },
+    description: String,
 
     price: {
       type: Number,
       required: true,
     },
 
-    image: {
-      type: String, // Cloudinary later
-    },
-
     stock: {
       type: Number,
+      required: true,
       default: 0,
     },
 
+    category: String,
+
+    discountType: {
+      type: String,
+      enum: ["percentage", "flat"],
+    },
+
+    discountValue: Number,
+
+    finalPrice: Number,
+
     shop: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Shop",
       required: true,
     },
 
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    images: [String],
+
+    expiryDate: Date,
+    weight: String,
+    size: String,
+    brand: String,
+    warranty: String,
+    modelNumber: String,
+    manufacturer: String,
+    skinType: String,
+    author: String,
+    ageGroup: String,
+    material: String,
 
     isActive: {
       type: Boolean,
@@ -46,4 +93,30 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("Product", productSchema);
+/* AUTO CALCULATE FINAL PRICE */
+
+productSchema.pre("save", function (this: IProduct) {
+
+  if (this.discountType && this.discountValue) {
+
+    if (this.discountType === "percentage") {
+
+      this.finalPrice =
+        this.price - (this.price * this.discountValue) / 100;
+
+    } else if (this.discountType === "flat") {
+
+      this.finalPrice =
+        this.price - this.discountValue;
+
+    }
+
+  } else {
+
+    this.finalPrice = this.price;
+
+  }
+
+});
+
+export default mongoose.model<IProduct>("Product", productSchema);

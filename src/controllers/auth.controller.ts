@@ -1,16 +1,26 @@
+import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import User from "../models/user.model";
-import generateToken from "../utils/generateToken";
 
-let otpStore: { [key: string]: string } = {};
-
-// REGISTER
-export const register = async (req, res) => {
+/* ================= REGISTER ================= */
+export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, phone } = req.body;
 
-    const existingUser = await User.findOne({ phone });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and phone are required",
+      });
+    }
+
+    const existing = await User.findOne({ phone });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone already registered",
+      });
     }
 
     const user = await User.create({
@@ -19,40 +29,97 @@ export const register = async (req, res) => {
       role: "user",
     });
 
-    res.status(201).json({ success: true, user });
+    res.json({
+      success: true,
+      message: "User registered successfully",
+      data: user,
+    });
 
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// SEND OTP
-export const sendOtp = async (req, res) => {
-  const { phone } = req.body;
+/* ================= SEND OTP ================= */
+export const sendOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore[phone] = otp;
+    const user = await User.findOne({ phone });
 
-  console.log(`🔥 OTP for ${phone}: ${otp}`);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-  res.json({ success: true });
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.otp = otp;
+    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    await user.save();
+
+    console.log("🔥 OTP for", phone, ":", otp);
+
+    res.json({
+      success: true,
+      message: "OTP sent (check backend console)",
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
-// VERIFY OTP
-export const verifyOtp = async (req, res) => {
-  const { phone, otp } = req.body;
+/* ================= VERIFY OTP ================= */
+export const verifyOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone, otp } = req.body;
 
-  if (otpStore[phone] !== otp) {
-    return res.status(400).json({ message: "Invalid OTP" });
+    const user = await User.findOne({ phone });
+
+    if (!user || user.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (user.otpExpiry && user.otpExpiry < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired",
+      });
+    }
+
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user,
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
-
-  const user = await User.findOne({ phone });
-
-  const token = generateToken(user._id);
-
-  res.json({
-    success: true,
-    token,
-    user,
-  });
 };

@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-// ================= REGISTER =================
 router.post("/register", async (req, res) => {
   try {
     const { name, phone } = req.body;
@@ -45,7 +44,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// ================= SEND OTP =================
 router.post("/send-otp", async (req, res) => {
   try {
     const { phone } = req.body;
@@ -70,7 +68,7 @@ router.post("/send-otp", async (req, res) => {
 
     res.json({
       success: true,
-      message: "OTP sent (check backend console)",
+      message: "OTP sent",
     });
 
   } catch (error: any) {
@@ -81,7 +79,6 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
-// ================= VERIFY OTP =================
 router.post("/verify-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -108,7 +105,7 @@ router.post("/verify-otp", async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET as string,
+      process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
 
@@ -119,11 +116,12 @@ router.post("/verify-otp", async (req, res) => {
     });
 
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  console.log("REGISTER ERROR:", error);
+  res.status(500).json({
+    success: false,
+    message: error.message,
+  });
+}
 });
 
-export default router;
+export default router;  

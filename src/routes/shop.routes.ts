@@ -1,23 +1,112 @@
 import express from "express";
-import { createShop, getMyShops, seedDummyShops } 
-from "../controllers/shop.controller.js";
-import { protect, restrictTo } 
-from "../middleware/auth.middleware.js";
+import { protect } from "../middleware/auth.middleware";
+import { upload } from "../middleware/upload.middleware";
+
+import {
+  createShop,
+  getMyShops
+} from "../controllers/shop.controller";
+
+import Shop from "../models/shop.model";
+import { getVendorShops } from "../controllers/shop.controller";
 
 const router = express.Router();
 
-// Create shop
-router.post("/", protect, createShop);
+/* CREATE SHOP */
 
-// Get logged-in vendor shops
-router.get("/my-shops", protect, getMyShops);
-
-// Seed dummy shops
 router.post(
-  "/seed",
+  "/create",
   protect,
-  restrictTo("vendor"),
-  seedDummyShops
+  upload.single("shopImage"),
+  createShop
 );
+
+/* GET MY SHOPS */
+
+
+/* GET ALL SHOPS */
+
+router.get("/", async (_req, res) => {
+  try {
+
+    const shops = await Shop.find();
+
+    res.json({
+      success: true,
+      data: shops
+    });
+
+  } catch (error: any) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
+  }
+});
+
+/* NEARBY SHOPS */
+
+router.get("/nearby", async (req, res) => {
+  try {
+
+    const { lat, lng } = req.query;
+
+    const shops = await Shop.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [
+              parseFloat(lng as string),
+              parseFloat(lat as string),
+            ],
+          },
+          $maxDistance: 5000,
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: shops,
+    });
+
+  } catch (error: any) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+});
+
+router.get(
+  "/my-shops",
+  protect,
+  getVendorShops
+);
+
+router.get("/:shopId", async (req, res) => {
+  try {
+
+    const shop = await Shop.findById(req.params.shopId);
+
+    res.json({
+      success: true,
+      data: shop
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
+  }
+});
 
 export default router;
