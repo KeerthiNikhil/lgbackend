@@ -10,6 +10,7 @@ import productRoutes from "./routes/product.routes.js";
 import { protect } from "./middleware/auth.middleware.js";
 import adminRoutes from "./routes/admin.routes.js";
 import searchRoutes from "./routes/search.routes";
+import deliveryBoyRoutes from "./routes/deliveryBoy.routes";
 
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api/v1/admin", adminRoutes);
 
 app.use("/uploads", express.static("uploads"));
 app.use("/api/v1/search", searchRoutes);
+app.use("/api/v1/delivery-boys", deliveryBoyRoutes);
 
 
 app.get(

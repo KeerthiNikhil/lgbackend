@@ -1,6 +1,8 @@
 import Shop from "../models/shop.model";
 import User from "../models/user.model";
 
+/* ================= CREATE SHOP ================= */
+
 export const createShop = async (req: any, res: any) => {
   try {
 
@@ -56,6 +58,7 @@ export const createShop = async (req: any, res: any) => {
       },
     });
 
+    /* convert user role to vendor */
     await User.findByIdAndUpdate(userId, {
       role: "vendor",
     });
@@ -66,21 +69,25 @@ export const createShop = async (req: any, res: any) => {
     });
 
   } catch (error: any) {
+
     console.error(error);
 
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
-/* ================= GET ALL VENDOR SHOPS ================= */
+/* ================= GET VENDOR SHOPS ================= */
 
 export const getMyShops = async (req: any, res: any) => {
   try {
 
-    const shops = await Shop.find({ owner: req.user._id });
+    const shops = await Shop.find({
+      owner: req.user._id
+    });
 
     res.json({
       success: true,
@@ -88,18 +95,74 @@ export const getMyShops = async (req: any, res: any) => {
     });
 
   } catch (error: any) {
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
+
+/* ================= GET SHOPS FOR DROPDOWN ================= */
+
 export const getVendorShops = async (req: any, res: any) => {
   try {
 
     const shops = await Shop.find({
       owner: req.user._id
     }).select("_id shopName");
+
+    res.json({
+      success: true,
+      data: shops
+    });
+
+  } catch (error: any) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
+  }
+};
+
+/* ================= GET SINGLE SHOP ================= */
+
+export const getShopById = async (req: any, res: any) => {
+  try {
+
+    const shop = await Shop.findById(req.params.id);
+
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: "Shop not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: shop
+    });
+
+  } catch (error: any) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
+  }
+};
+
+/* ================= GET ALL SHOPS ================= */
+
+export const getAllShops = async (req: any, res: any) => {
+  try {
+
+    const shops = await Shop.find().sort({ createdAt: -1 });
 
     res.json({
       success: true,

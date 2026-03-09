@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProduct extends Document {
+
   name: string;
   description?: string;
   price: number;
@@ -15,9 +16,12 @@ export interface IProduct extends Document {
 
   images: string[];
 
+  /* ⭐ UNITS / VARIANTS */
+
+  units?: string[];
+
   expiryDate?: Date;
   weight?: string;
-  size?: string;
   brand?: string;
   warranty?: string;
   modelNumber?: string;
@@ -35,30 +39,30 @@ export interface IProduct extends Document {
 
 const productSchema = new Schema<IProduct>(
   {
+
     name: {
       type: String,
       required: true,
-      trim: true,
+      trim: true
     },
 
     description: String,
 
     price: {
       type: Number,
-      required: true,
+      required: true
     },
 
     stock: {
       type: Number,
-      required: true,
-      default: 0,
+      default: 0
     },
 
     category: String,
 
     discountType: {
       type: String,
-      enum: ["percentage", "flat"],
+      enum: ["percentage", "flat"]
     },
 
     discountValue: Number,
@@ -68,14 +72,19 @@ const productSchema = new Schema<IProduct>(
     shop: {
       type: Schema.Types.ObjectId,
       ref: "Shop",
-      required: true,
+      required: true
     },
+
+    /* ⭐ MULTIPLE IMAGES */
 
     images: [String],
 
+    /* ⭐ UNITS / VARIANTS */
+
+    units: [String],
+
     expiryDate: Date,
     weight: String,
-    size: String,
     brand: String,
     warranty: String,
     modelNumber: String,
@@ -87,8 +96,9 @@ const productSchema = new Schema<IProduct>(
 
     isActive: {
       type: Boolean,
-      default: true,
-    },
+      default: true
+    }
+
   },
   { timestamps: true }
 );
@@ -104,7 +114,7 @@ productSchema.pre("save", function (this: IProduct) {
       this.finalPrice =
         this.price - (this.price * this.discountValue) / 100;
 
-    } else if (this.discountType === "flat") {
+    } else {
 
       this.finalPrice =
         this.price - this.discountValue;

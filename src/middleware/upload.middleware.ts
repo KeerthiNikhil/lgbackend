@@ -2,7 +2,6 @@ import multer from "multer";
 import path from "path";
 
 const storage = multer.diskStorage({
-
   destination: (req, file, cb) => {
     cb(null, "uploads/");
   },
@@ -16,23 +15,22 @@ const storage = multer.diskStorage({
 
     cb(null, uniqueName);
   },
-
 });
 
 const fileFilter = (req: any, file: any, cb: any) => {
-
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
   } else {
     cb(new Error("Only image files allowed"), false);
   }
-
 };
 
-export const upload = multer({
+const upload = multer({
   storage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024,
   },
 });
+
+export default upload;
