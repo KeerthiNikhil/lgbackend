@@ -2,43 +2,71 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+
 import authRoutes from "./routes/auth.routes.js";
-import { restrictTo } from "./middleware/restrict.middleware.js";
 import vendorRoutes from "./routes/vendor.routes.js";
 import shopRoutes from "./routes/shop.routes.js";
 import productRoutes from "./routes/product.routes.js";
-import { protect } from "./middleware/auth.middleware.js";
 import adminRoutes from "./routes/admin.routes.js";
 import searchRoutes from "./routes/search.routes";
 import deliveryBoyRoutes from "./routes/deliveryBoy.routes";
 
+import { protect } from "./middleware/auth.middleware.js";
+import { restrictTo } from "./middleware/restrict.middleware.js";
 
 dotenv.config();
 
-const app = express();   
+const app = express();
+
+/* ================= SECURITY MIDDLEWARE ================= */
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);// security headers
+
+app.use(morgan("dev")); // request logs
+
+app.use(express.json());
 
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // user-web
-      "http://localhost:5174", // vendor-web
-      "http://localhost:3000", // admin-web
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:3000",
     ],
     credentials: true,
   })
 );
-app.use(express.json());
+
+/* ================= RATE LIMITING ================= */
+
+const otpLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5,
+  message: "Too many OTP requests. Try again later.",
+});
+
+app.use("/api/v1/auth/send-otp", otpLimiter);
+
+/* ================= ROUTES ================= */
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/vendor", vendorRoutes);
 app.use("/api/v1/shops", shopRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/admin", adminRoutes);
-
-app.use("/uploads", express.static("uploads"));
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/delivery-boys", deliveryBoyRoutes);
 
+app.use("/uploads", express.static("uploads"));
+
+/* ================= PROTECTED ROUTE ================= */
 
 app.get(
   "/api/admin-only",
@@ -49,9 +77,13 @@ app.get(
   }
 );
 
+/* ================= HEALTH CHECK ================= */
+
 app.get("/", (_req, res) => {
   res.json({ message: "Marketplace API Running 🚀" });
 });
+
+/* ================= DB CONNECTION ================= */
 
 const PORT = process.env.PORT || 8000;
 
@@ -59,6 +91,7 @@ mongoose
   .connect(process.env.MONGO_URI as string)
   .then(() => {
     console.log("MongoDB Connected ✅");
+
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

@@ -3,9 +3,9 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.model";
 
 /* ================= REGISTER ================= */
-export const registerUser = async (req: Request, res: Response) => {
+router.post("/register", async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, role } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({
@@ -26,7 +26,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const user = await User.create({
       name,
       phone,
-      role: "user",
+      role: role || "user",
     });
 
     res.json({
@@ -41,7 +41,7 @@ export const registerUser = async (req: Request, res: Response) => {
       message: error.message,
     });
   }
-};
+});
 
 /* ================= SEND OTP ================= */
 export const sendOtp = async (req: Request, res: Response) => {
