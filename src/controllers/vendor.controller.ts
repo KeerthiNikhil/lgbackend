@@ -22,3 +22,36 @@ export const createShop = async (req: any, res: any) => {
     });
   }
 };
+
+// PUT /api/v1/orders/:id/assign-delivery
+
+export const assignDelivery = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      deliveryBoy,
+      deliveryBoyId,
+      distance,
+      rate,
+      totalDeliveryCost,
+    } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      id,
+      {
+        deliveryBoy,
+        deliveryBoyId,
+        deliveryStatus: "Assigned",
+        deliveryCost: totalDeliveryCost,
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      data: order,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
