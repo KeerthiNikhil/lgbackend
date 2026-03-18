@@ -1,10 +1,34 @@
 import express from "express";
-import { createShop } from "../controllers/vendor.controller.js";
-import { protect, restrictTo } from "../middleware/auth.middleware.js";
+import { protect } from "../middleware/auth.middleware.js";
+import User from "../models/user.model.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-// Vendor creates shop
-router.post("/", protect, restrictTo("vendor"), createShop);
+router.put("/become-vendor", protect, async (req: any, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    user.role = "vendor";
+    await user.save();
+
+    // 🔥 CREATE NEW TOKEN WITH UPDATED ROLE
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      success: true,
+      message: "Now vendor",
+      token, // ✅ NEW TOKEN
+      user,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Error upgrading" });
+  }
+});
 
 export default router;

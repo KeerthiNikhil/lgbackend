@@ -3,7 +3,6 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IUser extends Document {
   name: string;
   phone: string;
-  role: "user" | "vendor" | "admin";
   otp?: string;
   otpExpiry?: Date;
 }

@@ -5,7 +5,7 @@ import User from "../models/user.model";
 /* ================= REGISTER ================= */
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, role } = req.body;
+    const { name, phone} = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({
@@ -25,8 +25,7 @@ router.post("/register", async (req, res) => {
 
     const user = await User.create({
       name,
-      phone,
-      role: role || "user",
+      phone
     });
 
     res.json({
