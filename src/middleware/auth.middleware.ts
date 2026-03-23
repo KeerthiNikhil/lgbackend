@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import { Request, Response, NextFunction } from "express";
+
 
 export const protect = async (req: any, res: any, next: any) => {
   try {
@@ -49,4 +51,25 @@ export const restrictTo = (...roles: string[]) => {
     }
     next();
   };
+};
+
+export const adminAuth = (req: any, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: "No token" });
+    }
+
+    const decoded: any = jwt.verify(token, "SECRET_KEY");
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Not admin" });
+    }
+
+    req.adminId = decoded.id;
+    next();
+  } catch (err) {
+    res.status(401).json({ success: false, message: "Invalid token" });
+  }
 };
