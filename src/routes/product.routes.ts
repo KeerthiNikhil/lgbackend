@@ -11,6 +11,7 @@ import {
 import { getVendorProducts } from "../controllers/product.controller";
 import { bulkUploadProducts } from "../controllers/product.controller";
 import { getProductById } from "../controllers/product.controller";
+import { updateProduct } from "../controllers/product.controller";
 
 const router = express.Router();
 
@@ -32,8 +33,6 @@ router.get(
 router.get("/vendor-products", protect, getVendorProducts);
 router.get("/:id", getProductById);
 
-router.delete("/:productId", protect, deleteProduct);
-
 /* DELETE PRODUCT */
 
 router.delete(
@@ -42,7 +41,7 @@ router.delete(
   deleteProduct
 );
 
-
+router.put("/:id", protect, updateProduct);
 router.post("/bulk-upload", upload.single("file"), bulkUploadProducts);
 
 export default router;

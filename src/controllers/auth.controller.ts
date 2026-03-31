@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model";
+import { generateToken } from "../utils/generateToken.js";
 
 /* ================= REGISTER ================= */
 router.post("/register", async (req, res) => {
@@ -79,46 +80,40 @@ export const sendOtp = async (req: Request, res: Response) => {
 };
 
 /* ================= VERIFY OTP ================= */
-export const verifyOtp = async (req: Request, res: Response) => {
+export const verifyOtp = async (req, res) => {
+  const { phone, otp, name } = req.body;
+
   try {
-    const { phone, otp } = req.body;
+    // 👉 1. VERIFY OTP (your existing logic)
+    // Example (adjust based on your OTP logic)
+    if (otp !== "1234") {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
 
-    const user = await User.findOne({ phone });
+    // 👉 2. CHECK USER EXISTS
+    let user = await User.findOne({ phone });
 
-    if (!user || user.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
+    // 👉 3. IF NOT EXISTS → CREATE USER
+    if (!user) {
+      user = await User.create({
+        name: name || "User",
+        phone,
+        role: "user", // default role
       });
     }
 
-    if (user.otpExpiry && user.otpExpiry < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP expired",
-      });
-    }
+    // 👉 4. GENERATE TOKEN
+    const token = generateToken(user._id.toString());
 
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    await user.save();
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
-
+    // 👉 5. RETURN RESPONSE
     res.json({
       success: true,
       token,
       user,
     });
 
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
   }
 };

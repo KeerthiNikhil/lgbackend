@@ -184,36 +184,33 @@ export const getProductsByShop = async (req: any, res: any) => {
 
 /* ================= GET VENDOR PRODUCTS ================= */
 
-export const getVendorProducts = async (req: any, res: any) => {
-
+export const getVendorProducts = async (req, res) => {
   try {
 
+    res.set("Cache-Control", "no-store");
+
+    // ✅ STEP 1: get all shops of this vendor
     const shops = await Shop.find({
-      owner: req.user.id
+      owner: req.user.id,
     });
 
-    const shopIds = shops.map((shop: any) => shop.id);
-
+    // ✅ STEP 2: get products of those shops
     const products = await Product.find({
-      shop: { $in: shopIds }
-    }).populate("shop", "shopName");
+      shop: { $in: shops.map(s => s._id) },
+    }).populate("shop");
 
     res.status(200).json({
       success: true,
-      data: products
+      data: products,
     });
 
-  } catch (error: any) {
-
-    console.log("GET VENDOR PRODUCTS ERROR:", error);
-
+  } catch (error) {
+    console.log(error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: "Failed to fetch products",
     });
-
   }
-
 };
 
 export const bulkUploadProducts = async (req: any, res: any) => {
@@ -294,4 +291,43 @@ export const getProductById = async (req, res) => {
 
   }
 
+  
+
+};
+
+export const updateProduct = async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // ✅ Update fields
+    product.name = req.body.name || product.name;
+    product.description = req.body.description || product.description;
+    product.price = Number(req.body.price) || product.price;
+    product.stock = Number(req.body.stock) || product.stock;
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Product updated successfully",
+      data: product,
+    });
+
+  } catch (error: any) {
+    console.log("UPDATE ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };

@@ -15,7 +15,9 @@ import searchRoutes from "./routes/search.routes";
 import deliveryBoyRoutes from "./routes/deliveryBoy.routes";
 
 import { protect } from "./middleware/auth.middleware.js";
-import { restrictTo } from "./middleware/restrict.middleware.js";
+import { restrictTo } from "./middleware/restrict.middleware";
+import cartRoutes from "./routes/cart.routes.js";
+import orderRoutes from "./routes/order.routes.js";
 
 dotenv.config();
 
@@ -44,6 +46,8 @@ app.use(
   })
 );
 
+app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/orders", orderRoutes);
 /* ================= RATE LIMITING ================= */
 
 const otpLimiter = rateLimit({

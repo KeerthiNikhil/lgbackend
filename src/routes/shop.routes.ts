@@ -9,6 +9,7 @@ import {
 
 import Shop from "../models/shop.model";
 import { getVendorShops } from "../controllers/shop.controller";
+import { restrictToVendor } from "../middleware/restrict.middleware";
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post(
   "/create",
   protect,
+  restrictToVendor,
   upload.single("shopImage"),
   createShop
 );
