@@ -39,6 +39,7 @@ export const protect = async (req: any, res: any, next: any) => {
       message: "Not authorized - invalid token",
     });
   }
+  console.log("USER:", req.user);
 };
 
 export const restrictTo = (...roles: string[]) => {
@@ -73,3 +74,4 @@ export const adminAuth = (req: any, res: Response, next: NextFunction) => {
     res.status(401).json({ success: false, message: "Invalid token" });
   }
 };
+

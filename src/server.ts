@@ -1,6 +1,6 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -19,7 +19,6 @@ import { restrictTo } from "./middleware/restrict.middleware";
 import cartRoutes from "./routes/cart.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 
-dotenv.config();
 
 const app = express();
 
@@ -46,8 +45,7 @@ app.use(
   })
 );
 
-app.use("/api/v1/cart", cartRoutes);
-app.use("/api/v1/orders", orderRoutes);
+
 /* ================= RATE LIMITING ================= */
 
 const otpLimiter = rateLimit({
@@ -90,6 +88,15 @@ app.get("/", (_req, res) => {
 /* ================= DB CONNECTION ================= */
 
 const PORT = process.env.PORT || 8000;
+console.log("ENV CHECK 👉", process.env.RAZORPAY_KEY_ID);
+
+app.use("/api/v1/orders", (req, res, next) => {
+  console.log("📦 ORDERS ROUTE HIT:", req.method, req.url);
+  next();
+});
+
+app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/orders", orderRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI as string)

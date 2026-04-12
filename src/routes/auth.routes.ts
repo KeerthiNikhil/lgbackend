@@ -1,129 +1,13 @@
 import express from "express";
-import User from "../models/user.model";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
-import { body, validationResult } from "express-validator";
+import { sendOtp, verifyOtp, getMe } from "../controllers/auth.controller";
+import { protect } from "../middleware/auth.middleware";
+import { createRazorpayOrder } from "../controllers/order.controller";
 
 const router = express.Router();
 
-router.post("/register", async (req, res) => {
-  try {
-    const { name, phone } = req.body;
+router.post("/send-otp", sendOtp);
+router.post("/verify-otp", verifyOtp);
+router.get("/me", protect, getMe); // 
+router.post("/create-razorpay-order", createRazorpayOrder);
 
-    if (!name || !phone) {
-      return res.status(400).json({
-        success: false,
-        message: "Name and phone are required",
-      });
-    }
-
-    const existing = await User.findOne({ phone });
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone already registered",
-      });
-    }
-
-    const user = await User.create({
-      name,
-      phone,
-      role: "user",
-    });
-
-    res.json({
-      success: true,
-      message: "User registered successfully",
-      data: user,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
-
-router.post("/send-otp", async (req, res) => {
-  try {
-    const { phone } = req.body;
-
-    const user = await User.findOne({ phone });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    user.otp = otp;
-    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
-    await user.save();
-
-    console.log("🔥 OTP for", phone, ":", otp);
-
-    res.json({
-      success: true,
-      message: "OTP sent",
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
-
-router.post("/verify-otp", async (req, res) => {
-  try {
-    const { phone, otp } = req.body;
-
-    const user = await User.findOne({ phone });
-
-    if (!user || user.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
-      });
-    }
-
-    if (user.otpExpiry && user.otpExpiry < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP expired",
-      });
-    }
-
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    await user.save();
-
-    const token = jwt.sign(
-      { id: user._id},
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
-      success: true,
-      token,
-      user,
-    });
-
-  } catch (error: any) {
-  console.log("REGISTER ERROR:", error);
-  res.status(500).json({
-    success: false,
-    message: error.message,
-  });
-}
-});
-
-export default router;  
+export default router;

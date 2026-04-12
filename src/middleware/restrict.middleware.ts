@@ -13,16 +13,13 @@ export const restrictTo =
   };
 
 // ✅ VENDOR ONLY
-export const restrictToVendor = (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  if (!req.user?.isVendor) {
+export const restrictToVendor = (req, res, next) => {
+  if (req.user?.role !== "vendor") {
     return res.status(403).json({
       message: "Access denied. Vendor only.",
     });
   }
-
   next();
 };
+
+ 
